@@ -1,11 +1,17 @@
 import pygame
 import pygame.mixer
 
+# Инициализация Pygame и микшера
 pygame.init()
 pygame.mixer.init()
 
-pygame.mixer.music.load("www.mp3")
-shot_sound = pygame.mixer.Sound("shot.mp3")
+# Загрузка основной музыкальной композиции
+pygame.mixer.music.load("music.mp3")  # Основная музыкальная композиция
+pygame.mixer.music.play(-1)  # Бесконечная петля
+
+# Звук выстрела
+shot_sound = pygame.mixer.Sound("shot.mp3")  # Звук выстрела
+hit=pygame.mixer.Sound("www.mp3")
 
 FPS = 120
 
@@ -54,13 +60,19 @@ while running:
                 missile_speed_y = 0
                 missiles.append((missile, missile_speed_x, missile_speed_y))
 
-                shot_sound.play()
+                shot_sound.play()  # Воспроизводим звук выстрела
 
             elif event.key == pygame.K_w:
                 launcher_speed_y = -2
 
             elif event.key == pygame.K_s:
                 launcher_speed_y = 2
+
+            # Переключаемся на другую музыку по клавише 'n' (новая музыка)
+            elif event.key == pygame.K_n:
+                pygame.mixer.music.stop()  # Останавливаем текущую музыку
+                pygame.mixer.music.load("new_music.mp3")  # Загружаем новую композицию
+                pygame.mixer.music.play(-1)  # Начинаем бесконечную петлю новой музыки
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w or event.key == pygame.K_s:
@@ -70,15 +82,16 @@ while running:
         missile.move_ip(missile_speed_x, missile_speed_y)
 
         if not missile.colliderect(screen_rect):
-            missiles.remove((missile, missile_speed_x, missile_speed_y))
+            missiles.remove((missile, missile_speed_x, missile_speed_y))  # Удаляем торпеду
             score -= 1
 
-
+    # Обработка столкновения с кораблем
     for i, (missile, missile_speed_x, missile_speed_y) in enumerate(missiles):
         if ship_alive and missile.colliderect(ship):
             missiles.pop(i)
-            pygame.mixer.music.play()
-            score += 1
+            pygame.mixer.music.play()  # Музыка при попадании
+            hit.play()
+            score += 1  # Увеличиваем очки при попадании
             print(f"Попадание! Очки: {score}")
 
     if score <= 0:
