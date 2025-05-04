@@ -31,17 +31,21 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 # Состояние
-state = "splash"  # splash, menu, game, name_input
+state = "splash"  # splash, menu, game, name_input, menu_difficulty
 score = 10
 name = ""
+difficulty = 1  # 1 — легко, 2 — средне, 3 — сложно
 
 # Игровые объекты
-ship = pygame.Rect(WIDTH - 100, 200, 40, 60)  # У правого края
+ship = pygame.Rect(WIDTH - 100, 200, 50, 100)
 launcher = pygame.Rect(50, HEIGHT // 2 - 25, 20, 50)
 missiles = []
-ship_speed_y = 2 # Быстрее
 launcher_speed_y = 0
 ship_alive = True
+ship_speed_y = 2  # Начальная скорость
+ship_direction = 1  # 1 - вниз, -1 - вверх
+MAX_SPEED = 8  # Максимальная скорость корабля
+
 
 def draw_text(text, x, y, center=False, color=BLACK):
     t = font.render(text, True, color)
@@ -52,17 +56,23 @@ def draw_text(text, x, y, center=False, color=BLACK):
         rect.topleft = (x, y)
     screen.blit(t, rect)
 
+
 def run_game():
-    global ship_speed_y
-    global score, ship_alive, launcher_speed_y, missiles, state
+    global score, ship_alive, launcher_speed_y, missiles, state, difficulty
+    global ship_speed_y, ship_direction
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]: launcher_speed_y = -4
-    elif keys[pygame.K_s]: launcher_speed_y = 4
-    else: launcher_speed_y = 0
+    if keys[pygame.K_w]:
+        launcher_speed_y = -4
+    elif keys[pygame.K_s]:
+        launcher_speed_y = 4
+    else:
+        launcher_speed_y = 0
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        if event.type == pygame.QUIT:
+            pygame.quit();
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 missile = pygame.Rect(launcher.right, launcher.centery - 5, 10, 10)
@@ -87,10 +97,22 @@ def run_game():
     if score <= 0:
         ship_alive = False
 
+    # Движение врага - полностью безопасная версия
     if ship_alive:
-        ship.move_ip(0, ship_speed_y)
-        if ship.top <= 0 or ship.bottom >= HEIGHT:
-            ship_speed_y *= -1
+        # Рассчитываем скорость в зависимости от сложности
+        base_speed = min(difficulty + 1, 3)  # Ограничиваем базовую скорость
+        ship_speed_y = base_speed * ship_direction
+
+        # Двигаем корабль
+        ship.y += ship_speed_y
+
+        # Проверка границ и изменение направления
+        if ship.top <= 0:
+            ship.top = 0
+            ship_direction = 1  # Двигаемся вниз
+        elif ship.bottom >= HEIGHT:
+            ship.bottom = HEIGHT
+            ship_direction = -1  # Двигаемся вверх
 
     launcher.move_ip(0, launcher_speed_y)
     launcher.clamp_ip(screen.get_rect())
@@ -102,27 +124,41 @@ def run_game():
     pygame.draw.rect(screen, BLACK, launcher)
     for missile, _, _ in missiles:
         pygame.draw.rect(screen, RED, missile)
-    draw_text(f"Очки: {score}", 10, 10)
+
+    if name:
+        draw_text(f"{name} набрал очков: {score}", 10, 10)
+    else:
+        draw_text(f"Очки: {score}", 10, 10)
+
     pygame.display.flip()
 
+
+# Остальные функции остаются без изменений
 def run_menu():
-    global state
+    global state, difficulty
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        if event.type == pygame.QUIT:
+            pygame.quit();
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_1:
                 state = "game"
             elif event.key == pygame.K_2:
                 state = "name_input"
             elif event.key == pygame.K_3:
-                pygame.quit(); sys.exit()
+                state = "menu_difficulty"
+            elif event.key == pygame.K_4:
+                pygame.quit();
+                sys.exit()
 
     screen.blit(menu_bg, (0, 0))
     draw_text("1. Играть", WIDTH // 2, 150, center=True)
     draw_text("2. Имя игрока", WIDTH // 2, 200, center=True)
-    draw_text("3. Выход", WIDTH // 2, 250, center=True)
+    draw_text("3. Сложность", WIDTH // 2, 250, center=True)
+    draw_text("4. Выход", WIDTH // 2, 300, center=True)
     pygame.display.flip()
+
 
 def run_splash():
     global state
@@ -131,18 +167,21 @@ def run_splash():
     pygame.display.flip()
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        if event.type == pygame.QUIT:
+            pygame.quit();
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
             state = "menu"
+
 
 def run_name_input():
     global name, state
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        if event.type == pygame.QUIT:
+            pygame.quit();
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:
-                state = "menu"
-            elif event.key == pygame.K_ESCAPE:
+            if event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
                 state = "menu"
             elif event.key == pygame.K_BACKSPACE:
                 name = name[:-1]
@@ -154,6 +193,34 @@ def run_name_input():
     draw_text(name, 50, 150)
     pygame.display.flip()
 
+
+def run_menu_difficulty():
+    global state, difficulty
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit();
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_1:
+                difficulty = 1
+                state = "menu"
+            elif event.key == pygame.K_2:
+                difficulty = 2
+                state = "menu"
+            elif event.key == pygame.K_3:
+                difficulty = 3
+                state = "menu"
+            elif event.key == pygame.K_ESCAPE:
+                state = "menu"
+
+    screen.fill(WHITE)
+    draw_text("Выберите уровень сложности:", WIDTH // 2, 120, center=True)
+    draw_text("1. Легко", WIDTH // 2, 180, center=True)
+    draw_text("2. Средне", WIDTH // 2, 230, center=True)
+    draw_text("3. Сложно", WIDTH // 2, 280, center=True)
+    pygame.display.flip()
+
+
 # Главный цикл
 while True:
     if state == "splash":
@@ -164,6 +231,7 @@ while True:
         run_game()
     elif state == "name_input":
         run_name_input()
+    elif state == "menu_difficulty":
+        run_menu_difficulty()
 
     clock.tick(FPS)
-
