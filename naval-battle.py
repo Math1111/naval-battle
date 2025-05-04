@@ -36,15 +36,15 @@ score = 10
 name = ""
 
 # Игровые объекты
-ship = pygame.Rect(300, 200, 50, 100)
+ship = pygame.Rect(WIDTH - 100, 200, 40, 60)  # У правого края
 launcher = pygame.Rect(50, HEIGHT // 2 - 25, 20, 50)
 missiles = []
-ship_speed_y = 1
+ship_speed_y = 2 # Быстрее
 launcher_speed_y = 0
 ship_alive = True
 
-def draw_text(text, x, y, center=False):
-    t = font.render(text, True, BLACK)
+def draw_text(text, x, y, center=False, color=BLACK):
+    t = font.render(text, True, color)
     rect = t.get_rect()
     if center:
         rect.center = (x, y)
@@ -57,8 +57,8 @@ def run_game():
     global score, ship_alive, launcher_speed_y, missiles, state
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]: launcher_speed_y = -2
-    elif keys[pygame.K_s]: launcher_speed_y = 2
+    if keys[pygame.K_w]: launcher_speed_y = -4
+    elif keys[pygame.K_s]: launcher_speed_y = 4
     else: launcher_speed_y = 0
 
     for event in pygame.event.get():
@@ -127,7 +127,7 @@ def run_menu():
 def run_splash():
     global state
     screen.blit(splash, (0, 0))
-    draw_text("Нажмите любую клавишу...", WIDTH // 2, HEIGHT - 60, center=True)
+    draw_text("Нажмите любую клавишу...", WIDTH // 2, HEIGHT - 60, center=True, color=WHITE)
     pygame.display.flip()
 
     for event in pygame.event.get():
@@ -166,3 +166,4 @@ while True:
         run_name_input()
 
     clock.tick(FPS)
+
