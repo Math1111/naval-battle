@@ -1,132 +1,168 @@
 import pygame
 import pygame.mixer
+import sys
 
-# Инициализация Pygame и микшера
 pygame.init()
 pygame.mixer.init()
 
-# Загрузка основной музыкальной композиции
-pygame.mixer.music.load("music.mp3")  # Основная музыкальная композиция
-pygame.mixer.music.play(-1)  # Бесконечная петля
+# Музыка
+pygame.mixer.music.load("music.mp3")
+pygame.mixer.music.play(-1)
 
-# Звук выстрела
-shot_sound = pygame.mixer.Sound("shot.mp3")  # Звук выстрела
-hit=pygame.mixer.Sound("www.mp3")
+shot_sound = pygame.mixer.Sound("shot.mp3")
+hit = pygame.mixer.Sound("www.mp3")
 
-FPS = 120
-
+# Экран и кадры
+WIDTH, HEIGHT = 640, 480
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Моя игра")
 clock = pygame.time.Clock()
+FPS = 60
 
-screen = pygame.display.set_mode((640, 480))
+# Фон и шрифт
+menu_bg = pygame.image.load("background.png")
+splash = pygame.image.load("splash.jpg")
+font = pygame.font.SysFont("comicsansms", 40)
 
-screen_rect = screen.get_rect()
+# Цвета
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
 
-MAIN_BACKGROUND_COLOR = (255, 255, 255)
-MISSILE_COLOR = (255, 0, 0)
-SHIP_COLOR = (0, 0, 255)
-LAUNCHER_COLOR = (0, 0, 0)
-GAME_OVER_COLOR = (0, 0, 0)
+# Состояние
+state = "splash"  # splash, menu, game, name_input
+score = 10
+name = ""
 
-background_color = MAIN_BACKGROUND_COLOR
-
+# Игровые объекты
 ship = pygame.Rect(300, 200, 50, 100)
-ship.right = screen_rect.right
-ship.centery = screen_rect.centery
-
-launcher = pygame.Rect(50, screen_rect.centery - 25, 20, 50)
-
+launcher = pygame.Rect(50, HEIGHT // 2 - 25, 20, 50)
 missiles = []
-
 ship_speed_y = 1
 launcher_speed_y = 0
-
 ship_alive = True
 
-score = 10
+def draw_text(text, x, y, center=False):
+    t = font.render(text, True, BLACK)
+    rect = t.get_rect()
+    if center:
+        rect.center = (x, y)
+    else:
+        rect.topleft = (x, y)
+    screen.blit(t, rect)
 
-font = pygame.font.SysFont(None, 36)
+def run_game():
+    global ship_speed_y
+    global score, ship_alive, launcher_speed_y, missiles, state
 
-running = True
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_w]: launcher_speed_y = -2
+    elif keys[pygame.K_s]: launcher_speed_y = 2
+    else: launcher_speed_y = 0
 
-while running:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
+        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 missile = pygame.Rect(launcher.right, launcher.centery - 5, 10, 10)
-                missile_speed_x = 3
-                missile_speed_y = 0
-                missiles.append((missile, missile_speed_x, missile_speed_y))
+                missiles.append((missile, 3, 0))
+                shot_sound.play()
+            elif event.key == pygame.K_ESCAPE:
+                state = "menu"
 
-                shot_sound.play()  # Воспроизводим звук выстрела
-
-            elif event.key == pygame.K_w:
-                launcher_speed_y = -2
-
-            elif event.key == pygame.K_s:
-                launcher_speed_y = 2
-
-            # Переключаемся на другую музыку по клавише 'n' (новая музыка)
-            elif event.key == pygame.K_n:
-                pygame.mixer.music.stop()  # Останавливаем текущую музыку
-                pygame.mixer.music.load("new_music.mp3")  # Загружаем новую композицию
-                pygame.mixer.music.play(-1)  # Начинаем бесконечную петлю новой музыки
-
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_w or event.key == pygame.K_s:
-                launcher_speed_y = 0
-
-    for missile, missile_speed_x, missile_speed_y in missiles:
-        missile.move_ip(missile_speed_x, missile_speed_y)
-
-        if not missile.colliderect(screen_rect):
-            missiles.remove((missile, missile_speed_x, missile_speed_y))  # Удаляем торпеду
+    # Движение и столкновения
+    for missile, dx, dy in missiles[:]:
+        missile.move_ip(dx, dy)
+        if not screen.get_rect().contains(missile):
+            missiles.remove((missile, dx, dy))
             score -= 1
 
-    # Обработка столкновения с кораблем
-    for i, (missile, missile_speed_x, missile_speed_y) in enumerate(missiles):
+    for i, (missile, dx, dy) in enumerate(missiles):
         if ship_alive and missile.colliderect(ship):
             missiles.pop(i)
-            pygame.mixer.music.play()  # Музыка при попадании
             hit.play()
-            score += 1  # Увеличиваем очки при попадании
-            print(f"Попадание! Очки: {score}")
+            score += 1
 
     if score <= 0:
-        background_color = GAME_OVER_COLOR
-        print("Игра окончена!")
-        running = False
+        ship_alive = False
 
     if ship_alive:
         ship.move_ip(0, ship_speed_y)
-
-    if ship.bottom > screen_rect.bottom or ship.top < screen_rect.top:
-        ship_speed_y = -ship_speed_y
+        if ship.top <= 0 or ship.bottom >= HEIGHT:
+            ship_speed_y *= -1
 
     launcher.move_ip(0, launcher_speed_y)
+    launcher.clamp_ip(screen.get_rect())
 
-    if launcher.top < screen_rect.top:
-        launcher.top = screen_rect.top
-    if launcher.bottom > screen_rect.bottom:
-        launcher.bottom = screen_rect.bottom
-
-    screen.fill(background_color)
-
+    # Отрисовка
+    screen.fill(WHITE)
     if ship_alive:
-        pygame.draw.rect(screen, SHIP_COLOR, ship)
-
-    pygame.draw.rect(screen, LAUNCHER_COLOR, launcher)
-
+        pygame.draw.rect(screen, BLUE, ship)
+    pygame.draw.rect(screen, BLACK, launcher)
     for missile, _, _ in missiles:
-        pygame.draw.rect(screen, MISSILE_COLOR, missile)
-
-    score_text = font.render(f"Очки: {score}", True, (0, 0, 0))
-    screen.blit(score_text, (10, 10))
-
+        pygame.draw.rect(screen, RED, missile)
+    draw_text(f"Очки: {score}", 10, 10)
     pygame.display.flip()
 
-    clock.tick(FPS)
+def run_menu():
+    global state
 
-pygame.quit()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_1:
+                state = "game"
+            elif event.key == pygame.K_2:
+                state = "name_input"
+            elif event.key == pygame.K_3:
+                pygame.quit(); sys.exit()
+
+    screen.blit(menu_bg, (0, 0))
+    draw_text("1. Играть", WIDTH // 2, 150, center=True)
+    draw_text("2. Имя игрока", WIDTH // 2, 200, center=True)
+    draw_text("3. Выход", WIDTH // 2, 250, center=True)
+    pygame.display.flip()
+
+def run_splash():
+    global state
+    screen.blit(splash, (0, 0))
+    draw_text("Нажмите любую клавишу...", WIDTH // 2, HEIGHT - 60, center=True)
+    pygame.display.flip()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            state = "menu"
+
+def run_name_input():
+    global name, state
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                state = "menu"
+            elif event.key == pygame.K_ESCAPE:
+                state = "menu"
+            elif event.key == pygame.K_BACKSPACE:
+                name = name[:-1]
+            else:
+                name += event.unicode
+
+    screen.fill(WHITE)
+    draw_text("Введите имя:", 50, 100)
+    draw_text(name, 50, 150)
+    pygame.display.flip()
+
+# Главный цикл
+while True:
+    if state == "splash":
+        run_splash()
+    elif state == "menu":
+        run_menu()
+    elif state == "game":
+        run_game()
+    elif state == "name_input":
+        run_name_input()
+
+    clock.tick(FPS)
