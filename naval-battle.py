@@ -126,7 +126,7 @@ def run_game():
         pygame.draw.rect(screen, RED, missile)
 
     if name:
-        draw_text(f"{name} набрал очков: {score}", 10, 10)
+        draw_text(f"{name} набрал(a) очков: {score}", 10, 10)
     else:
         draw_text(f"Очки: {score}", 10, 10)
 
