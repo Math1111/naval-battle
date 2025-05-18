@@ -373,7 +373,7 @@ def run_game_over():
     else:
         draw_text(f"Ваш счет: {score}", "medium", WIDTH // 2, 180, BLACK, True)
 
-    draw_text(f"Лучший счет: {high_score}", "medium", WIDTH // 2, 240, BLACK, True)
+    #draw_text(f"Лучший счет: {high_score}", "medium", WIDTH // 2, 240, BLACK, True)
 
     buttons = [
         draw_button("Играть снова", WIDTH // 2 - 200, 320, 400, 60, GREEN, (100, 255, 100),
